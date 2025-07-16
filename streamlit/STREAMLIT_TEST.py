@@ -8,125 +8,90 @@ import warnings
 from sklearn.preprocessing import LabelEncoder
 import plotly.graph_objects as go
 import plotly.express as px
-import xgboost
 
 warnings.filterwarnings('ignore')
 
 # Page configuration
 st.set_page_config(
-    page_title="Flight Delay Predictor",
-    page_icon="✈️",
+    page_title="Flight Delay Predictor with Weather Analysis",
+    page_icon="🌤️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for styling
+# Simplified CSS for better compatibility
 st.markdown("""
 <style>
     .main-header {
         background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
-        padding: 1rem;
+        padding: 20px;
         border-radius: 10px;
-        margin-bottom: 2rem;
-    }
-
-    .main-header h1 {
-        color: white;
+        margin-bottom: 20px;
         text-align: center;
-        margin: 0;
-        font-size: 2.5rem;
-        font-weight: bold;
-    }
-
-    .prediction-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 15px;
         color: white;
-        margin: 1rem 0;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
     }
-
-    .metric-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-        border-left: 4px solid #667eea;
-        margin: 1rem 0;
+    
+    .weather-risk-high {
+        background-color: #ffebee;
+        border-left: 5px solid #f44336;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
     }
-
-    .weather-card {
-        background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
-        color: white;
-        margin: 1rem 0;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    
+    .weather-risk-medium {
+        background-color: #fff3e0;
+        border-left: 5px solid #ff9800;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
     }
-
-    .weather-location {
-        background: rgba(255,255,255,0.1);
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 0.5rem 0;
+    
+    .weather-risk-low {
+        background-color: #e8f5e8;
+        border-left: 5px solid #4caf50;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
     }
-
+    
+    .weather-factor {
+        background-color: #f5f5f5;
+        padding: 10px;
+        margin: 5px 0;
+        border-radius: 5px;
+        border-left: 3px solid #2196f3;
+    }
+    
     .info-box {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #17a2b8;
-        margin: 1rem 0;
+        background-color: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
     }
-
+    
     .warning-box {
-        background: #fff3cd;
-        padding: 1rem;
-        border-radius: 8px;
+        background-color: #fff3cd;
         border-left: 4px solid #ffc107;
-        margin: 1rem 0;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
     }
-
+    
     .success-box {
-        background: #d4edda;
-        padding: 1rem;
-        border-radius: 8px;
+        background-color: #d4edda;
         border-left: 4px solid #28a745;
-        margin: 1rem 0;
-    }
-
-    .stButton > button {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 0.75rem 2rem;
-        border-radius: 25px;
-        font-weight: bold;
-        font-size: 1rem;
-        transition: all 0.3s ease;
-        width: 100%;
-    }
-
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(102,126,234,0.4);
-    }
-
-    .sidebar .stSelectbox > div > div {
-        background-color: #f8f9fa;
-    }
-
-    .stProgress > div > div {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
     }
 </style>
 """, unsafe_allow_html=True)
 
 
-@st.cache_data
-def load_model():
-    """Load the saved model and components"""
+def load_model_safe():
+    """Safely load the saved model and components"""
     try:
         with open('models/test02.pkl', 'rb') as f:
             model_package = pickle.load(f)
@@ -139,38 +104,23 @@ def load_model():
             model_package.get('version', 'Unknown')
         )
     except FileNotFoundError:
-        st.error("Model file not found.")
+        st.error(" Model file 'test02.pkl' not found. Please ensure the model file is in the correct directory.")
         return None, None, None, None, None
     except Exception as e:
-        st.error(f"Error loading model: {str(e)}")
+        st.error(f" Error loading model: {str(e)}")
         return None, None, None, None, None
 
 
-@st.cache_data
-def load_historical_data():
-    """Load historical data for reference"""
+def load_airports_data_safe():
+    """Safely load airports data"""
     try:
-        df = pd.read_csv("merged_flights_weather.csv")
-        return df
-    except FileNotFoundError:
-        st.warning("Historical data file not found. Using fallback data.")
-        return pd.DataFrame()
-    except Exception as e:
-        st.warning(f"Error loading historical data: {str(e)}")
-        return pd.DataFrame()
-
-
-@st.cache_data
-def load_airports_data():
-    """Load airports data"""
-    try:
-        airports_df = pd.read_csv("airports.csv")
+        airports_df = pd.read_csv("streamlit/airports.csv")
         return airports_df
     except FileNotFoundError:
-        st.warning("Airports data file not found. Using fallback coordinates.")
+        st.warning(" Airports data file 'airports.csv' not found. Weather forecasts may be limited.")
         return pd.DataFrame()
     except Exception as e:
-        st.warning(f"Error loading airports data: {str(e)}")
+        st.warning(f" Error loading airports data: {str(e)}")
         return pd.DataFrame()
 
 
@@ -180,11 +130,6 @@ def get_weather_forecast(iata_code, date_str, api_key, airports_df=None):
         return None, "no_api_key"
 
     try:
-        # Parse the prediction date
-        prediction_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-        today = datetime.date.today()
-        days_ahead = (prediction_date - today).days
-
         # Get coordinates for the airport
         if airports_df is not None and not airports_df.empty:
             if iata_code in airports_df['IATA_CODE'].values:
@@ -193,7 +138,18 @@ def get_weather_forecast(iata_code, date_str, api_key, airports_df=None):
             else:
                 return None, "unknown_airport"
         else:
-            return None, "unknown_airport"
+            # Fallback coordinates for common airports
+            fallback_coords = {
+                'JFK': (40.6413, -73.7781),
+                'LAX': (33.9425, -118.4081),
+                'ORD': (41.9742, -87.9073),
+                'DFW': (32.8975, -97.0380),
+                'DEN': (39.8561, -104.6737)
+            }
+            if iata_code in fallback_coords:
+                lat, lon = fallback_coords[iata_code]
+            else:
+                return None, "unknown_airport"
 
         # Visual Crossing API call
         url = f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{lat},{lon}/{date_str}"
@@ -234,93 +190,245 @@ def get_weather_forecast(iata_code, date_str, api_key, airports_df=None):
         return None, f"error: {str(e)}"
 
 
+def analyze_weather_impact(weather_data, location_name):
+    """Analyze weather conditions and identify delay-causing factors"""
+    if not weather_data:
+        return [], "LOW"
+    
+    delay_factors = []
+    risk_level = "LOW"
+    
+    # Define thresholds for weather conditions that typically cause delays
+    thresholds = {
+        'high_wind': 40,        # km/h
+        'low_visibility': 5,    # km
+        'heavy_rain': 10,       # mm
+        'snow_present': 0.5,    # cm
+        'extreme_cold': -10,    # °C
+        'extreme_heat': 35,     # °C
+    }
+    
+    # Check each weather factor
+    if weather_data['wind_speed'] > thresholds['high_wind']:
+        severity = "HIGH" if weather_data['wind_speed'] > 60 else "MEDIUM"
+        delay_factors.append({
+            'factor': 'High Wind Speed',
+            'value': f"{weather_data['wind_speed']:.1f} km/h",
+            'threshold': f">{thresholds['high_wind']} km/h",
+            'severity': severity,
+            'impact': 'Can cause landing/takeoff delays and turbulence',
+            'location': location_name
+        })
+        if severity == "HIGH":
+            risk_level = "HIGH"
+        elif risk_level == "LOW":
+            risk_level = "MEDIUM"
+    
+    if weather_data['visibility'] < thresholds['low_visibility']:
+        severity = "HIGH" if weather_data['visibility'] < 2 else "MEDIUM"
+        delay_factors.append({
+            'factor': 'Poor Visibility',
+            'value': f"{weather_data['visibility']:.1f} km",
+            'threshold': f"<{thresholds['low_visibility']} km",
+            'severity': severity,
+            'impact': 'Requires instrument approaches, reduces airport capacity',
+            'location': location_name
+        })
+        if severity == "HIGH":
+            risk_level = "HIGH"
+        elif risk_level == "LOW":
+            risk_level = "MEDIUM"
+    
+    if weather_data['precipitation'] > thresholds['heavy_rain']:
+        severity = "HIGH" if weather_data['precipitation'] > 25 else "MEDIUM"
+        delay_factors.append({
+            'factor': 'Heavy Precipitation',
+            'value': f"{weather_data['precipitation']:.1f} mm",
+            'threshold': f">{thresholds['heavy_rain']} mm",
+            'severity': severity,
+            'impact': 'Reduces runway capacity, increases stopping distances',
+            'location': location_name
+        })
+        if severity == "HIGH":
+            risk_level = "HIGH"
+        elif risk_level == "LOW":
+            risk_level = "MEDIUM"
+    
+    if weather_data['snow'] > thresholds['snow_present']:
+        severity = "HIGH" if weather_data['snow'] > 5 else "MEDIUM"
+        delay_factors.append({
+            'factor': 'Snow Conditions',
+            'value': f"{weather_data['snow']:.1f} cm",
+            'threshold': f">{thresholds['snow_present']} cm",
+            'severity': severity,
+            'impact': 'Requires de-icing, runway clearing, major delays possible',
+            'location': location_name
+        })
+        risk_level = "HIGH"  # Snow always high risk
+    
+    if weather_data['temperature'] < thresholds['extreme_cold']:
+        severity = "HIGH" if weather_data['temperature'] < -20 else "MEDIUM"
+        delay_factors.append({
+            'factor': 'Extreme Cold',
+            'value': f"{weather_data['temperature']:.1f}°C",
+            'threshold': f"<{thresholds['extreme_cold']}°C",
+            'severity': severity,
+            'impact': 'Requires extensive de-icing, equipment issues possible',
+            'location': location_name
+        })
+        if severity == "HIGH":
+            risk_level = "HIGH"
+        elif risk_level == "LOW":
+            risk_level = "MEDIUM"
+    
+    if weather_data['temperature'] > thresholds['extreme_heat']:
+        severity = "MEDIUM"
+        delay_factors.append({
+            'factor': 'Extreme Heat',
+            'value': f"{weather_data['temperature']:.1f}°C",
+            'threshold': f">{thresholds['extreme_heat']}°C",
+            'severity': severity,
+            'impact': 'Reduces aircraft performance, weight restrictions possible',
+            'location': location_name
+        })
+        if risk_level == "LOW":
+            risk_level = "MEDIUM"
+    
+    # Check for severe weather conditions
+    severe_conditions = ['thunderstorm', 'storm', 'fog', 'mist', 'freezing', 'blizzard', 'hail']
+    if any(condition in weather_data['weather_desc'].lower() for condition in severe_conditions):
+        severity = "HIGH" if any(condition in weather_data['weather_desc'].lower() 
+                               for condition in ['thunderstorm', 'blizzard', 'freezing']) else "MEDIUM"
+        delay_factors.append({
+            'factor': 'Severe Weather Conditions',
+            'value': weather_data['weather_desc'],
+            'threshold': 'Clear/Partly Cloudy preferred',
+            'severity': severity,
+            'impact': 'Various operational restrictions and safety concerns',
+            'location': location_name
+        })
+        if severity == "HIGH":
+            risk_level = "HIGH"
+        elif risk_level == "LOW":
+            risk_level = "MEDIUM"
+    
+    return delay_factors, risk_level
+
+
+def display_weather_analysis(origin_weather, dest_weather, origin_code, dest_code, prediction):
+    """Display comprehensive weather analysis"""
+    st.markdown("###  Weather Delay Analysis")
+    
+    # Analyze weather impact for both locations
+    origin_factors, origin_risk = analyze_weather_impact(origin_weather, f"Origin ({origin_code})")
+    dest_factors, dest_risk = analyze_weather_impact(dest_weather, f"Destination ({dest_code})")
+    
+    # Determine overall risk
+    all_factors = origin_factors + dest_factors
+    overall_risk = "LOW"
+    if origin_risk == "HIGH" or dest_risk == "HIGH":
+        overall_risk = "HIGH"
+    elif origin_risk == "MEDIUM" or dest_risk == "MEDIUM":
+        overall_risk = "MEDIUM"
+    
+    # Risk level display
+    risk_class = f"weather-risk-{overall_risk.lower()}"
+    risk_icon = {"LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🔴"}[overall_risk]
+    
+    st.markdown(f"""
+    <div class="{risk_class}">
+        <h4>{risk_icon} Overall Weather Risk: {overall_risk}</h4>
+        <p>Based on analysis of weather conditions at both origin and destination</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Weather factors analysis
+    if all_factors:
+        st.markdown("#### Weather Factors Contributing to Delays")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown(f"**🛫 {origin_code} Weather Issues**")
+            if origin_factors:
+                for factor in origin_factors:
+                    severity_icon = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}[factor['severity']]
+                    st.markdown(f"""
+                    <div class="weather-factor">
+                        <strong>{severity_icon} {factor['factor']}</strong><br>
+                        Current: {factor['value']} | Threshold: {factor['threshold']}<br>
+                        <em>{factor['impact']}</em>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.markdown(" No significant weather issues detected")
+        
+        with col2:
+            st.markdown(f"**🛬 {dest_code} Weather Issues**")
+            if dest_factors:
+                for factor in dest_factors:
+                    severity_icon = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}[factor['severity']]
+                    st.markdown(f"""
+                    <div class="weather-factor">
+                        <strong>{severity_icon} {factor['factor']}</strong><br>
+                        Current: {factor['value']} | Threshold: {factor['threshold']}<br>
+                        <em>{factor['impact']}</em>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.markdown(" No significant weather issues detected")
+    else:
+        st.markdown("""
+        <div class="success-box">
+            <h4> Favorable Weather Conditions</h4>
+            <p>No significant weather factors identified that would cause delays. Weather conditions appear favorable for on-time operations.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+
 def display_weather_forecast(origin_weather, dest_weather, origin_code, dest_code, flight_date):
     """Display weather forecast information"""
-    st.markdown("### Weather Forecast")
+    st.markdown("###  Weather Forecast")
     
     col1, col2 = st.columns(2)
     
     with col1:
+        st.markdown(f"**🛫 Origin: {origin_code}**")
         if origin_weather:
-            st.markdown(f"""
-            <div class="weather-card">
-                <h4>🛫 Origin: {origin_code}</h4>
-                <div class="weather-location">
-                    <p><strong>Date:</strong> {flight_date}</p>
-                    <p><strong>Conditions:</strong> {origin_weather['weather_desc']}</p>
-                    <p><strong>Temperature:</strong> {origin_weather['temperature']:.1f}°C</p>
-                    <p><strong>Humidity:</strong> {origin_weather['humidity']:.1f}%</p>
-                    <p><strong>Wind Speed:</strong> {origin_weather['wind_speed']:.1f} km/h</p>
-                    <p><strong>Visibility:</strong> {origin_weather['visibility']:.1f} km</p>
-                    <p><strong>Cloud Cover:</strong> {origin_weather['cloudiness']:.1f}%</p>
-                    <p><strong>Precipitation:</strong> {origin_weather['precipitation']:.1f} mm</p>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.write(f"**Date:** {flight_date}")
+            st.write(f"**Conditions:** {origin_weather['weather_desc']}")
+            st.write(f"**Temperature:** {origin_weather['temperature']:.1f}°C")
+            st.write(f"**Humidity:** {origin_weather['humidity']:.1f}%")
+            st.write(f"**Wind Speed:** {origin_weather['wind_speed']:.1f} km/h")
+            st.write(f"**Visibility:** {origin_weather['visibility']:.1f} km")
+            st.write(f"**Precipitation:** {origin_weather['precipitation']:.1f} mm")
+            if origin_weather['snow'] > 0:
+                st.write(f"**Snow:** {origin_weather['snow']:.1f} cm")
         else:
-            st.markdown(f"""
-            <div class="weather-card">
-                <h4>🛫 Origin: {origin_code}</h4>
-                <div class="weather-location">
-                    <p>Weather forecast not available</p>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.write("Weather forecast not available")
     
     with col2:
+        st.markdown(f"**🛬 Destination: {dest_code}**")
         if dest_weather:
-            st.markdown(f"""
-            <div class="weather-card">
-                <h4>🛬 Destination: {dest_code}</h4>
-                <div class="weather-location">
-                    <p><strong>Date:</strong> {flight_date}</p>
-                    <p><strong>Conditions:</strong> {dest_weather['weather_desc']}</p>
-                    <p><strong>Temperature:</strong> {dest_weather['temperature']:.1f}°C</p>
-                    <p><strong>Humidity:</strong> {dest_weather['humidity']:.1f}%</p>
-                    <p><strong>Wind Speed:</strong> {dest_weather['wind_speed']:.1f} km/h</p>
-                    <p><strong>Visibility:</strong> {dest_weather['visibility']:.1f} km</p>
-                    <p><strong>Cloud Cover:</strong> {dest_weather['cloudiness']:.1f}%</p>
-                    <p><strong>Precipitation:</strong> {dest_weather['precipitation']:.1f} mm</p>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.write(f"**Date:** {flight_date}")
+            st.write(f"**Conditions:** {dest_weather['weather_desc']}")
+            st.write(f"**Temperature:** {dest_weather['temperature']:.1f}°C")
+            st.write(f"**Humidity:** {dest_weather['humidity']:.1f}%")
+            st.write(f"**Wind Speed:** {dest_weather['wind_speed']:.1f} km/h")
+            st.write(f"**Visibility:** {dest_weather['visibility']:.1f} km")
+            st.write(f"**Precipitation:** {dest_weather['precipitation']:.1f} mm")
+            if dest_weather['snow'] > 0:
+                st.write(f"**Snow:** {dest_weather['snow']:.1f} cm")
         else:
-            st.markdown(f"""
-            <div class="weather-card">
-                <h4>🛬 Destination: {dest_code}</h4>
-                <div class="weather-location">
-                    <p>Weather forecast not available</p>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.write("Weather forecast not available")
 
 
-def create_prediction_input(inputs, df, encoders, feature_columns, api_key='KZG5KUC6LL62Z5LHDDZ3TTGVC', airports_df=None):
+def create_prediction_input(inputs, encoders, feature_columns, api_key, airports_df=None):
     """Create input dataframe for prediction and return weather data"""
     try:
         date_obj = datetime.datetime.strptime(inputs['date_str'], "%Y-%m-%d")
     except ValueError:
         return None, "Invalid date format", None, None
-
-    # Get historical data for this route
-    if not df.empty:
-        route_data = df[
-            (df['ORIGIN_AIRPORT'].astype(str).str.upper() == inputs['origin']) &
-            (df['DESTINATION_AIRPORT'].astype(str).str.upper() == inputs['dest']) &
-            (df['MONTH'] == date_obj.month)
-            ]
-
-        if 'AIRLINE' in df.columns:
-            airline_route_data = route_data[
-                route_data['AIRLINE'].astype(str).str.upper() == inputs['airline']
-                ]
-            if not airline_route_data.empty:
-                route_data = airline_route_data
-
-        if route_data.empty:
-            route_data = df[df['MONTH'] == date_obj.month]
-    else:
-        route_data = pd.DataFrame()
 
     # Create base input
     input_dict = {
@@ -349,19 +457,18 @@ def create_prediction_input(inputs, df, encoders, feature_columns, api_key='KZG5
 
         if origin_weather:
             for key, value in origin_weather.items():
-                input_dict[f'origin_{key}'] = value
+                if key != 'weather_desc':  # Skip non-numeric
+                    input_dict[f'origin_{key}'] = value
 
         if dest_weather:
             for key, value in dest_weather.items():
-                input_dict[f'dest_{key}'] = value
+                if key != 'weather_desc':  # Skip non-numeric
+                    input_dict[f'dest_{key}'] = value
 
-    # Fill missing features with historical averages or defaults
-    if not route_data.empty:
-        numeric_cols = route_data.select_dtypes(include=[np.number]).columns
-        for col in numeric_cols:
-            if col in feature_columns and col not in input_dict:
-                avg_val = route_data[col].mean()
-                input_dict[col] = avg_val if not pd.isna(avg_val) else 0
+    # Fill missing features with defaults
+    for col in feature_columns:
+        if col not in input_dict:
+            input_dict[col] = 0
 
     # Create DataFrame
     input_df = pd.DataFrame([input_dict])
@@ -383,7 +490,6 @@ def create_prediction_input(inputs, df, encoders, feature_columns, api_key='KZG5
 
 def create_delay_visualization(prediction, airline, route):
     """Create a visualization for the delay prediction"""
-    # Create gauge chart for delay
     fig = go.Figure(go.Indicator(
         mode="gauge+number+delta",
         value=prediction,
@@ -409,9 +515,7 @@ def create_delay_visualization(prediction, airline, route):
 
     fig.update_layout(
         height=400,
-        font={'color': "darkblue", 'family': "Arial"},
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)"
+        font={'color': "darkblue", 'family': "Arial"}
     )
 
     return fig
@@ -421,234 +525,143 @@ def main():
     # Header
     st.markdown("""
     <div class="main-header">
-        <h1>Flight Delay Predictor</h1>
+        <h1> Flight Delay Predictor with Weather Analysis</h1>
     </div>
     """, unsafe_allow_html=True)
-
-    # Load model and data
-    model, encoders, feature_columns, created_date, version = load_model()
-
+    
+    model, encoders, feature_columns, created_date, version = load_model_safe()
     if model is None:
         st.stop()
 
-    # Load historical data and airports data
-    df = load_historical_data()
-    airports_df = load_airports_data()
+    airports_df = load_airports_data_safe()
 
-    # Sidebar with model info
+    # Sidebar
     with st.sidebar:
-        st.markdown("### Model Information")
-        st.markdown(f"**Created:** {created_date}")
-        st.markdown(f"**Version:** {version}")
-        st.markdown(f"**Features:** {len(feature_columns) if feature_columns is not None else 'Unknown'}")
+        st.markdown("###  Model Information")
+        st.write(f"**Created:** {created_date}")
+        st.write(f"**Version:** {version}")
+        st.write(f"**Features:** {len(feature_columns) if feature_columns is not None else 'Unknown'}")
 
-        st.markdown("### Weather Settings")
+        st.markdown("###  Weather Settings")
         use_weather = st.checkbox("Use Real-time Weather Forecasts", value=True)
+        show_analysis = st.checkbox("Show Weather Delay Analysis", value=True)
 
-        api_key = None
-        if use_weather:
-            api_key = 'KZG5KUC6LL62Z5LHDDZ3TTGVC'  # Default API key
-            # Uncomment below to allow custom API key input
-            # api_key = st.text_input(
-            #     "Visual Crossing API Key",
-            #     type="password",
-            #     value='KZG5KUC6LL62Z5LHDDZ3TTGVC',
-            #     placeholder="Enter your API key...",
-            #     help="Get your free API key from Visual Crossing Weather"
-            # )
+    # Main content
+    st.markdown("###  Flight Details")
 
-        st.markdown("### Popular Routes")
-        if not df.empty and 'ORIGIN_AIRPORT' in df.columns:
+    # Flight input form
+    with st.form("flight_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            origin = st.text_input("Origin Airport Code", value="JFK").upper()
+            airline = st.selectbox("Airline", options=["AA", "UA", "DL", "WN", "AS", "B6"])
+            departure_time = st.time_input("Scheduled Departure", value=datetime.time(14, 0))
+
+        with col2:
+            dest = st.text_input("Destination Airport Code", value="LAX").upper()
+            flight_date = st.date_input("Flight Date", value=datetime.date.today() + datetime.timedelta(days=1))
+            arrival_time = st.time_input("Scheduled Arrival", value=datetime.time(17, 0))
+
+        submitted = st.form_submit_button(" Predict Delay")
+
+    # Prediction results
+    if submitted:
+        # Validate inputs
+        if len(origin) != 3 or len(dest) != 3:
+            st.error("Airport codes must be exactly 3 letters!")
+            st.stop()
+
+        if origin == dest:
+            st.error("Origin and destination cannot be the same!")
+            st.stop()
+
+        # Prepare input data
+        inputs = {
+            'origin': origin,
+            'dest': dest,
+            'airline': airline,
+            'date_str': flight_date.strftime("%Y-%m-%d"),
+            'scheduled_departure': departure_time.hour * 100 + departure_time.minute,
+            'scheduled_arrival': arrival_time.hour * 100 + arrival_time.minute
+        }
+
+        # Show progress
+        with st.spinner("Processing prediction and analyzing weather..."):
+            api_key = 'KZG5KUC6LL62Z5LHDDZ3TTGVC' if use_weather else None
+            
+            input_df, status, origin_weather, dest_weather = create_prediction_input(
+                inputs, encoders, feature_columns, api_key, airports_df
+            )
+
+            if input_df is None:
+                st.error(f"Error creating prediction input: {status}")
+                st.stop()
+
+            # Make prediction
             try:
-                popular_routes = df.groupby(['ORIGIN_AIRPORT', 'DESTINATION_AIRPORT']).size().nlargest(5)
-                for (origin, dest), count in popular_routes.items():
-                    st.markdown(f"**{origin} → {dest}** ({count:,} flights)")
-            except Exception as e:
-                st.markdown("No popular routes data available")
+                prediction = model.predict(input_df)[0]
 
-    # Main content area
-    col1, col2 = st.columns([2, 1])
+                # Display results
+                st.markdown("###  Prediction Results")
 
-    with col1:
-        st.markdown("### Flight Details")
+                # Create visualization
+                fig = create_delay_visualization(prediction, airline, f"{origin} → {dest}")
+                st.plotly_chart(fig, use_container_width=True)
 
-        # Flight input form
-        with st.form("flight_form"):
-            col_a, col_b = st.columns(2)
-
-            with col_a:
-                origin = st.text_input(
-                    "Origin Airport Code",
-                    value="JFK",
-                    placeholder="e.g., JFK, LAX, ORD",
-                    help="Enter 3-letter airport code"
-                ).upper()
-
-                airline = st.selectbox(
-                    "Airline",
-                    options=["AA", "UA", "DL", "WN", "AS", "B6", "NK", "F9", "G4", "HA"],
-                    help="Select airline code"
-                )
-
-                departure_time = st.time_input(
-                    "Scheduled Departure",
-                    value=datetime.time(14, 0),
-                    help="Select departure time"
-                )
-
-            with col_b:
-                dest = st.text_input(
-                    "Destination Airport Code",
-                    value="LAX",
-                    placeholder="e.g., JFK, LAX, ORD",
-                    help="Enter 3-letter airport code"
-                ).upper()
-
-                flight_date = st.date_input(
-                    "Flight Date",
-                    value=datetime.date.today() + datetime.timedelta(days=1),
-                    help="Select flight date"
-                )
-
-                arrival_time = st.time_input(
-                    "Scheduled Arrival",
-                    value=datetime.time(17, 0),
-                    help="Select arrival time"
-                )
-
-            submitted = st.form_submit_button("Predict Delay", use_container_width=True)
-
-        # Prediction results
-        if submitted:
-            # Validate inputs
-            if len(origin) != 3 or len(dest) != 3:
-                st.error("Airport codes must be exactly 3 letters!")
-                st.stop()
-
-            if origin == dest:
-                st.error("Origin and destination cannot be the same!")
-                st.stop()
-
-            # Prepare input data
-            inputs = {
-                'origin': origin,
-                'dest': dest,
-                'airline': airline,
-                'date_str': flight_date.strftime("%Y-%m-%d"),
-                'scheduled_departure': departure_time.hour * 100 + departure_time.minute,
-                'scheduled_arrival': arrival_time.hour * 100 + arrival_time.minute
-            }
-
-            # Show progress
-            with st.spinner("Processing prediction..."):
-                input_df, status, origin_weather, dest_weather = create_prediction_input(
-                    inputs, df, encoders, feature_columns, api_key if use_weather else None, airports_df
-                )
-
-                if input_df is None:
-                    st.error(f"Error creating prediction input: {status}")
-                    st.stop()
-
-                # Make prediction
-                try:
-                    prediction = model.predict(input_df)[0]
-
-                    # Display results
-                    st.markdown("### Prediction Results")
-
-                    # Create visualization
-                    fig = create_delay_visualization(prediction, airline, f"{origin} → {dest}")
-                    st.plotly_chart(fig, use_container_width=True)
-
-                    # Results summary
-                    if prediction > 0:
-                        if prediction > 30:
-                            result_class = "warning-box"
-                            severity = "Major Delay"
-                        elif prediction > 15:
-                            result_class = "warning-box"
-                            severity = "Significant Delay"
-                        else:
-                            result_class = "info-box"
-                            severity = "Minor Delay"
-
-                        st.markdown(f"""
-                        <div class="{result_class}">
-                            <h4>{severity} Expected</h4>
-                            <p><strong>Flight {airline} {origin} → {dest}</strong> is predicted to arrive <strong>{prediction:.1f} minutes late</strong> on {flight_date.strftime('%B %d, %Y')}.</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                # Results summary
+                if prediction > 0:
+                    if prediction > 30:
+                        result_class = "warning-box"
+                        severity = " Major Delay"
+                    elif prediction > 15:
+                        result_class = "warning-box"
+                        severity = " Significant Delay"
                     else:
-                        st.markdown(f"""
-                        <div class="success-box">
-                            <h4>On-Time or Early Arrival</h4>
-                            <p><strong>Flight {airline} {origin} → {dest}</strong> is predicted to arrive <strong>{abs(prediction):.1f} minutes early</strong> on {flight_date.strftime('%B %d, %Y')}.</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        result_class = "info-box"
+                        severity = " Minor Delay"
 
-                    # Display weather forecast if available
-                    if use_weather and (origin_weather or dest_weather):
-                        display_weather_forecast(origin_weather, dest_weather, origin, dest, flight_date.strftime('%B %d, %Y'))
-                    elif use_weather:
-                        st.markdown("""
-                        <div class="info-box">
-                            <h4>Weather Information</h4>
-                            <p>Weather forecasts are not available for the selected airports or date. The prediction uses historical weather patterns.</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class="{result_class}">
+                        <h4>{severity} Expected</h4>
+                        <p><strong>Flight {airline} {origin} → {dest}</strong> is predicted to arrive <strong>{prediction:.1f} minutes late</strong> on {flight_date.strftime('%B %d, %Y')}.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div class="success-box">
+                        <h4> On-Time or Early Arrival</h4>
+                        <p><strong>Flight {airline} {origin} → {dest}</strong> is predicted to arrive <strong>{abs(prediction):.1f} minutes early</strong> on {flight_date.strftime('%B %d, %Y')}.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-                except Exception as e:
-                    st.error(f"Error making prediction: {str(e)}")
+                # Display weather analysis
+                if show_analysis and use_weather and (origin_weather or dest_weather):
+                    display_weather_analysis(origin_weather, dest_weather, origin, dest, prediction)
+                
+                # Display weather forecast
+                if use_weather and (origin_weather or dest_weather):
+                    display_weather_forecast(origin_weather, dest_weather, origin, dest, flight_date.strftime('%B %d, %Y'))
+                elif use_weather:
+                    st.markdown("""
+                    <div class="info-box">
+                        <h4> Weather Information</h4>
+                        <p>Weather forecasts are not available for the selected airports or date. The prediction uses historical weather patterns.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-    with col2:
-        st.markdown("### Tips & Information")
-
-        st.markdown("""
-        <div class="metric-card">
-            <h4>How to Use</h4>
-            <ul>
-                <li>Enter valid 3-letter airport codes (e.g., JFK, LAX)</li>
-                <li>Select your airline and flight times</li>
-                <li>Choose a future date for forecasting</li>
-                <li>Enable weather forecasts for better accuracy</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("""
-        <div class="metric-card">
-            <h4>Weather Impact</h4>
-            <ul>
-                <li><strong>High winds:</strong> Can cause departure delays</li>
-                <li><strong>Low visibility:</strong> Affects landing procedures</li>
-                <li><strong>Precipitation:</strong> Increases taxi and boarding time</li>
-                <li><strong>Temperature:</strong> Affects aircraft performance</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("""
-        <div class="metric-card">
-            <h4>Delay Categories</h4>
-            <ul>
-                <li><span style="color: green;">On-time</span>: Early or &lt;5 min delay</li>
-                <li><span style="color: blue;">Minor</span>: 5-15 min delay</li>
-                <li><span style="color: orange;">Significant</span>: 15-30 min delay</li>
-                <li><span style="color: red;">Major</span>: &gt;30 min delay</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error making prediction: {str(e)}")
+                st.write("Please check that all required files are present and try again.")
 
     # Footer
     st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; padding: 1rem; color: #666;">
-        <p>Flight Delay Predictor | Built with Streamlit & Machine Learning</p>
-        <p>Powered by XGBoost & Real-time Weather Data</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(" **Flight Delay Predictor with Weather Analysis** | Built with Streamlit & Machine Learning")
 
 
 if __name__ == "__main__":
-    main()
-    
+    try:
+        main()
+    except Exception as e:
+        st.error(f"Application Error: {str(e)}")
+        st.write("Please check your files and dependencies.")
