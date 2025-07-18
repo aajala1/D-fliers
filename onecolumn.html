@@ -10,7 +10,6 @@
 
     <link rel="stylesheet" href="assets/css/main.css" />
 
-    <!-- Internal Font Styling -->
     <style>
         body, input, select, textarea {
             font-family: 'Inter', sans-serif;
@@ -19,23 +18,19 @@
             color: #333;
             background-color: #f9fbfd;
         }
-
         h1, h2, h3, h4, h5, h6 {
             font-family: 'Inter', sans-serif;
             font-weight: 600;
             letter-spacing: -0.5px;
             color: #222;
         }
-
         a {
             text-decoration: none;
             color: #007acc;
         }
-
         a:hover {
             text-decoration: underline;
         }
-
         .button {
             background-color: #007acc;
             color: white;
@@ -47,11 +42,9 @@
             font-size: 16px;
             transition: background-color 0.3s;
         }
-
         .button:hover {
             background-color: #005f99;
         }
-
         .contact-section {
             max-width: 650px;
             margin: 60px auto;
@@ -60,21 +53,14 @@
             padding: 40px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.08);
             text-align: center;
-            animation: fadeIn 1s ease;
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
         .contact-section h2 {
             font-size: 28px;
             color: #007acc;
             margin-bottom: 30px;
         }
-
         .contact-section form input,
+        .contact-section form select,
         .contact-section form textarea {
             width: 100%;
             padding: 14px;
@@ -85,17 +71,15 @@
             font-size: 15px;
             transition: border 0.3s;
         }
-
         .contact-section form input:focus,
+        .contact-section form select:focus,
         .contact-section form textarea:focus {
             border-color: #007acc;
             outline: none;
         }
-
         .contact-details {
             margin-top: 40px;
         }
-
         .contact-details p {
             margin: 10px 0;
             font-size: 15px;
@@ -104,8 +88,6 @@
 </head>
 <body>
 <div id="page-wrapper">
-
-    <!-- Header -->
     <div id="header-wrapper">
         <div class="container">
             <div class="row">
@@ -123,7 +105,6 @@
         </div>
     </div>
 
-    <!-- Main -->
     <div id="main">
         <div class="container">
             <div class="contact-section">
@@ -131,21 +112,22 @@
                 <form action="https://formspree.io/f/xeozjvyj" method="POST">
                     <input type="text" name="name" placeholder="Your Name" required>
                     <input type="email" name="email" placeholder="Your Email" required>
+                    <select name="role" required>
+                        <option value="" disabled selected>Select if you are a...</option>
+                        <option value="Researcher">Researcher</option>
+                        <option value="Student">Student</option>
+                    </select>
                     <textarea name="message" rows="5" placeholder="Your Message" required></textarea>
                     <button type="submit" class="button">Send Message ✈️</button>
                 </form>
                 <div class="contact-details">
-                    <p><strong>Email:</strong>info@dlfiers.com</p>
+                    <p><strong>Email:</strong> info@dlfiers.com</p>
                     <p><a href="mailto:info@dfliers.com">Send us an email</a></p>
-                    <div class="social-icons">
-                    
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
     <div class="container">
         <div class="row">
             <div class="col-12">
@@ -155,7 +137,6 @@
             </div>
         </div>
     </div>
-
 </div>
 </body>
 </html>
